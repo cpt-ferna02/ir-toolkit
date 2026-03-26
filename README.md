@@ -15,11 +15,22 @@ potentially compromised machine.
 
 ## 📸 Screenshots
 
+**Report Header & Stats**
 ![Report Header](screenshots/report-header.png)
+
+**Running Processes**
 ![Processes](screenshots/processes-table.png)
+
+**Network Connections**
 ![Network Connections](screenshots/network-connections.png)
+
+**Startup Programs**
 ![Startup Programs](screenshots/startup-programs.png)
+
+**Recently Modified Files**
 ![Recent Files](screenshots/recent-files.png)
+
+**Terminal Output**
 ![Terminal](screenshots/terminal-run.png)
 
 ## 🚀 How To Run
