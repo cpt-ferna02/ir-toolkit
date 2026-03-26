@@ -1,0 +1,2242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IR Report — Fernagod</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
+
+  :root {
+    --bg:      #080b0f;
+    --panel:   #0d1117;
+    --card:    #111820;
+    --border:  #1c2a38;
+    --accent:  #00c8f0;
+    --green:   #00e896;
+    --warn:    #f0a500;
+    --danger:  #f04040;
+    --text:    #b8ccd8;
+    --heading: #e2eef8;
+    --muted:   #3d5265;
+    --mono:    'Share Tech Mono', monospace;
+    --sans:    'IBM Plex Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+
+  /* scanline texture */
+  body::after {
+    content: '';
+    position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 3px,
+      rgba(0,200,240,.018) 3px, rgba(0,200,240,.018) 4px
+    );
+  }
+
+  /* ── HEADER ──────────────────────────────────── */
+  header {
+    background: linear-gradient(135deg, #05090e 0%, #0a1520 100%);
+    border-bottom: 2px solid var(--accent);
+    padding: 32px 48px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 32px;
+    animation: fadeDown .5s ease both;
+  }
+  @keyframes fadeDown {
+    from { opacity:0; transform:translateY(-10px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .brand { display:flex; flex-direction:column; gap:6px; }
+  .brand-label {
+    font-family: var(--mono); font-size:10px; letter-spacing:4px;
+    text-transform:uppercase; color:var(--muted);
+  }
+  .brand h1 {
+    font-family: var(--mono); font-size:24px;
+    color:var(--accent); letter-spacing:2px; text-transform:uppercase;
+  }
+  .brand h1 em { color:var(--green); font-style:normal; }
+  .brand-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+
+  .header-meta {
+    text-align:right; font-size:12px;
+    color:var(--muted); line-height:2;
+    font-family: var(--mono);
+  }
+  .header-meta span { color:var(--heading); }
+
+  .pulse {
+    display:inline-block; width:8px; height:8px;
+    background:var(--green); border-radius:50%; margin-right:6px;
+    animation: glow 1.6s ease-in-out infinite;
+  }
+  @keyframes glow {
+    0%,100% { box-shadow:0 0 0 0 rgba(0,232,150,.6); }
+    50%      { box-shadow:0 0 0 5px rgba(0,232,150,0); }
+  }
+
+  /* ── STAT BAR ────────────────────────────────── */
+  .stat-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+    animation: fadeUp .6s .1s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(8px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .stat {
+    background: var(--panel);
+    padding: 20px 28px;
+    border-top: 3px solid var(--border);
+    transition: border-color .2s;
+  }
+  .stat:hover { border-top-color: var(--accent); }
+  .stat.ok    { border-top-color: var(--green); }
+  .stat.warn  { border-top-color: var(--warn); }
+  .stat.info  { border-top-color: var(--accent); }
+  .stat .num  { font-size:30px; font-weight:600; color:var(--heading); line-height:1; font-family:var(--mono); }
+  .stat .lbl  { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-top:4px; }
+
+  /* ── MAIN LAYOUT ─────────────────────────────── */
+  main { padding: 40px 48px; display:flex; flex-direction:column; gap:36px; }
+
+  /* ── SECTION ─────────────────────────────────── */
+  .section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    animation: fadeUp .5s ease both;
+  }
+  .section:nth-child(1) { animation-delay:.1s; }
+  .section:nth-child(2) { animation-delay:.15s; }
+  .section:nth-child(3) { animation-delay:.2s; }
+  .section:nth-child(4) { animation-delay:.25s; }
+  .section:nth-child(5) { animation-delay:.3s; }
+  .section:nth-child(6) { animation-delay:.35s; }
+
+  .section-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 20px;
+    background: #0c1219;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-head h2 {
+    font-family: var(--mono); font-size:12px;
+    letter-spacing:3px; text-transform:uppercase; color:var(--accent);
+  }
+  .section-head .icon { font-size:16px; }
+  .pill {
+    margin-left:auto; background:var(--border); color:var(--muted);
+    font-size:11px; padding:2px 10px; border-radius:20px;
+    font-family:var(--mono);
+  }
+
+  /* ── SYSTEM INFO GRID ────────────────────────── */
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1px; background: var(--border); padding: 0;
+  }
+  .info-item {
+    background: var(--card); padding: 14px 20px;
+  }
+  .info-item .k { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+  .info-item .v { font-family:var(--mono); color:var(--heading); font-size:13px; margin-top:3px; }
+
+  /* ── TABLE ───────────────────────────────────── */
+  .tbl-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  th {
+    background:#09111a; color:var(--muted);
+    font-size:10px; letter-spacing:2px; text-transform:uppercase;
+    padding:10px 16px; text-align:left;
+    border-bottom:1px solid var(--border); white-space:nowrap;
+  }
+  td {
+    padding:9px 16px; border-bottom:1px solid rgba(28,42,56,.7);
+    color:var(--text); vertical-align:middle;
+  }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(0,200,240,.03); }
+
+  /* ── PRE BLOCK (users / startup raw output) ──── */
+  .raw-output {
+    padding:20px; font-family:var(--mono);
+    font-size:12px; color:var(--text);
+    white-space:pre-wrap; word-break:break-all;
+    line-height:1.8;
+  }
+
+  /* ── HELPERS ─────────────────────────────────── */
+  .mono  { font-family:var(--mono); font-size:11.5px; }
+  .small { font-size:11px; }
+
+  .badge {
+    display:inline-block; font-size:9px; letter-spacing:1px;
+    text-transform:uppercase; padding:2px 7px; border-radius:3px;
+    font-weight:700; margin-left:5px; color:#fff;
+  }
+  .badge.danger  { background:var(--danger); }
+  .badge.warn    { background:var(--warn); color:#000; }
+  .badge.ok      { background:var(--green); color:#000; }
+
+  .status-running    { color:var(--green); }
+  .status-sleeping   { color:var(--muted); }
+  .status-established{ color:var(--accent); }
+  .status-listen     { color:var(--warn); }
+  .status-close_wait { color:var(--danger); }
+
+  /* ── FOOTER ──────────────────────────────────── */
+  footer {
+    margin: 0 48px 40px;
+    padding-top:20px; border-top:1px solid var(--border);
+    font-family:var(--mono); font-size:11px; color:var(--muted);
+    letter-spacing:1px;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="brand">
+    <div class="brand-label"><span class="pulse"></span>FORENSIC TRIAGE REPORT</div>
+    <h1>INCIDENT RESPONSE <em>TOOLKIT</em></h1>
+    <div class="brand-sub">Automated First-Responder Evidence Collection</div>
+  </div>
+  <div class="header-meta">
+    <div>HOSTNAME &nbsp;<span>Fernagod</span></div>
+    <div>OS &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span>Windows 10.0.26200</span></div>
+    <div>ARCH &nbsp;&nbsp;&nbsp;&nbsp;<span>AMD64</span></div>
+    <div>COLLECTED <span>2026-03-26 04:58:52</span></div>
+  </div>
+</header>
+
+<!-- STAT BAR -->
+<div class="stat-bar">
+  <div class="stat info">
+    <div class="num">239</div>
+    <div class="lbl">Running Processes</div>
+  </div>
+  <div class="stat warn">
+    <div class="num">100</div>
+    <div class="lbl">Established Connections</div>
+  </div>
+  <div class="stat warn">
+    <div class="num">16</div>
+    <div class="lbl">External Connections</div>
+  </div>
+  <div class="stat info">
+    <div class="num">207</div>
+    <div class="lbl">Total Network Sockets</div>
+  </div>
+  <div class="stat info">
+    <div class="num">35</div>
+    <div class="lbl">Recently Modified Files</div>
+  </div>
+  <div class="stat warn">
+    <div class="num">6</div>
+    <div class="lbl">Startup Entries</div>
+  </div>
+</div>
+
+<main>
+
+  <!-- SYSTEM INFO -->
+  <div class="section">
+    <div class="section-head">
+      <span class="icon">🖥️</span>
+      <h2>System Information</h2>
+    </div>
+    <div class="info-grid">
+      <div class="info-item"><div class="k">Hostname</div><div class="v">Fernagod</div></div>
+      <div class="info-item"><div class="k">Operating System</div><div class="v">Windows</div></div>
+      <div class="info-item"><div class="k">OS Version</div><div class="v">10.0.26200</div></div>
+      <div class="info-item"><div class="k">Architecture</div><div class="v">AMD64</div></div>
+      <div class="info-item"><div class="k">Processor</div><div class="v">AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD</div></div>
+      <div class="info-item"><div class="k">Collected At</div><div class="v">2026-03-26 04:58:52</div></div>
+    </div>
+  </div>
+
+  <!-- PROCESSES -->
+  <div class="section">
+    <div class="section-head">
+      <span class="icon">⚙️</span>
+      <h2>Running Processes</h2>
+      <span class="pill">239 total · showing top 60 by memory</span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>PID</th><th>Name</th><th>User</th>
+            <th>Status</th><th>CPU %</th><th>Mem %</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td class="mono">3156</td>
+              <td><strong>MemCompression</strong> <span class="badge danger">HIGH MEM</span></td>
+              <td>—</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>5.23%</td>
+            </tr>
+            <tr>
+              <td class="mono">15384</td>
+              <td><strong>brave.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>3.79%</td>
+            </tr>
+            <tr>
+              <td class="mono">8240</td>
+              <td><strong>brave.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>3.7%</td>
+            </tr>
+            <tr>
+              <td class="mono">11768</td>
+              <td><strong>explorer.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>2.48%</td>
+            </tr>
+            <tr>
+              <td class="mono">16032</td>
+              <td><strong>MsMpEng.exe</strong> </td>
+              <td>—</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>2.37%</td>
+            </tr>
+            <tr>
+              <td class="mono">9064</td>
+              <td><strong>brave.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>2.26%</td>
+            </tr>
+            <tr>
+              <td class="mono">26212</td>
+              <td><strong>brave.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>2.02%</td>
+            </tr>
+            <tr>
+              <td class="mono">23232</td>
+              <td><strong>Discord.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>1.98%</td>
+            </tr>
+            <tr>
+              <td class="mono">17860</td>
+              <td><strong>brave.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>1.94%</td>
+            </tr>
+            <tr>
+              <td class="mono">25952</td>
+              <td><strong>Code.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>1.93%</td>
+            </tr>
+            <tr>
+              <td class="mono">11064</td>
+              <td><strong>brave.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>1.84%</td>
+            </tr>
+            <tr>
+              <td class="mono">6588</td>
+              <td><strong>splunkd.exe</strong> </td>
+              <td>—</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>1.69%</td>
+            </tr>
+            <tr>
+              <td class="mono">21288</td>
+              <td><strong>brave.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>1.09%</td>
+            </tr>
+            <tr>
+              <td class="mono">25960</td>
+              <td><strong>brave.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>1.09%</td>
+            </tr>
+            <tr>
+              <td class="mono">24572</td>
+              <td><strong>Code.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>1.04%</td>
+            </tr>
+            <tr>
+              <td class="mono">17772</td>
+              <td><strong>brave.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>1.0%</td>
+            </tr>
+            <tr>
+              <td class="mono">26320</td>
+              <td><strong>Code.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.97%</td>
+            </tr>
+            <tr>
+              <td class="mono">7932</td>
+              <td><strong>StartMenuExperienceHost.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.9%</td>
+            </tr>
+            <tr>
+              <td class="mono">19460</td>
+              <td><strong>RazerAppEngine.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.87%</td>
+            </tr>
+            <tr>
+              <td class="mono">13276</td>
+              <td><strong>NVIDIA Overlay.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.86%</td>
+            </tr>
+            <tr>
+              <td class="mono">22784</td>
+              <td><strong>Code.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.83%</td>
+            </tr>
+            <tr>
+              <td class="mono">23168</td>
+              <td><strong>Code.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.79%</td>
+            </tr>
+            <tr>
+              <td class="mono">6216</td>
+              <td><strong>SearchHost.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.79%</td>
+            </tr>
+            <tr>
+              <td class="mono">26540</td>
+              <td><strong>Code.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.79%</td>
+            </tr>
+            <tr>
+              <td class="mono">14984</td>
+              <td><strong>msedgewebview2.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.73%</td>
+            </tr>
+            <tr>
+              <td class="mono">14464</td>
+              <td><strong>RiotClientServices.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.71%</td>
+            </tr>
+            <tr>
+              <td class="mono">576</td>
+              <td><strong>Code.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.67%</td>
+            </tr>
+            <tr>
+              <td class="mono">11528</td>
+              <td><strong>Discord.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.66%</td>
+            </tr>
+            <tr>
+              <td class="mono">16468</td>
+              <td><strong>msedgewebview2.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.64%</td>
+            </tr>
+            <tr>
+              <td class="mono">5592</td>
+              <td><strong>GameManagerService3.exe</strong> </td>
+              <td>—</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.64%</td>
+            </tr>
+            <tr>
+              <td class="mono">24600</td>
+              <td><strong>pwsh.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.61%</td>
+            </tr>
+            <tr>
+              <td class="mono">18048</td>
+              <td><strong>RazerAppEngine.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.6%</td>
+            </tr>
+            <tr>
+              <td class="mono">5104</td>
+              <td><strong>Discord.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.6%</td>
+            </tr>
+            <tr>
+              <td class="mono">22368</td>
+              <td><strong>RazerAppEngine.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.59%</td>
+            </tr>
+            <tr>
+              <td class="mono">2964</td>
+              <td><strong>nvcontainer.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.59%</td>
+            </tr>
+            <tr>
+              <td class="mono">19708</td>
+              <td><strong>RazerAppEngine.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.59%</td>
+            </tr>
+            <tr>
+              <td class="mono">21336</td>
+              <td><strong>RazerAppEngine.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.57%</td>
+            </tr>
+            <tr>
+              <td class="mono">26172</td>
+              <td><strong>brave.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.57%</td>
+            </tr>
+            <tr>
+              <td class="mono">22300</td>
+              <td><strong>RazerAppEngine.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.55%</td>
+            </tr>
+            <tr>
+              <td class="mono">9896</td>
+              <td><strong>brave.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.55%</td>
+            </tr>
+            <tr>
+              <td class="mono">1936</td>
+              <td><strong>svchost.exe</strong> </td>
+              <td>—</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.54%</td>
+            </tr>
+            <tr>
+              <td class="mono">1796</td>
+              <td><strong>dwm.exe</strong> </td>
+              <td>—</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.54%</td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td><strong>mongod-8.0.exe</strong> </td>
+              <td>—</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.53%</td>
+            </tr>
+            <tr>
+              <td class="mono">18112</td>
+              <td><strong>TextInputHost.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.52%</td>
+            </tr>
+            <tr>
+              <td class="mono">24252</td>
+              <td><strong>Discord.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.51%</td>
+            </tr>
+            <tr>
+              <td class="mono">24016</td>
+              <td><strong>ShellExperienceHost.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-stopped">stopped</span></td>
+              <td>0%</td>
+              <td>0.5%</td>
+            </tr>
+            <tr>
+              <td class="mono">21048</td>
+              <td><strong>RazerAppEngine.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.5%</td>
+            </tr>
+            <tr>
+              <td class="mono">18840</td>
+              <td><strong>RazerAppEngine.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.49%</td>
+            </tr>
+            <tr>
+              <td class="mono">20932</td>
+              <td><strong>RazerAppEngine.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.47%</td>
+            </tr>
+            <tr>
+              <td class="mono">5820</td>
+              <td><strong>splunkd.exe</strong> </td>
+              <td>—</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.47%</td>
+            </tr>
+            <tr>
+              <td class="mono">7144</td>
+              <td><strong>rsAppUI.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.47%</td>
+            </tr>
+            <tr>
+              <td class="mono">12856</td>
+              <td><strong>rsAppUI.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.45%</td>
+            </tr>
+            <tr>
+              <td class="mono">14312</td>
+              <td><strong>NVIDIA Overlay.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.44%</td>
+            </tr>
+            <tr>
+              <td class="mono">15856</td>
+              <td><strong>NVIDIA Overlay.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.43%</td>
+            </tr>
+            <tr>
+              <td class="mono">20440</td>
+              <td><strong>brave.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.42%</td>
+            </tr>
+            <tr>
+              <td class="mono">16040</td>
+              <td><strong>msedgewebview2.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.4%</td>
+            </tr>
+            <tr>
+              <td class="mono">6816</td>
+              <td><strong>RuntimeBroker.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.4%</td>
+            </tr>
+            <tr>
+              <td class="mono">11580</td>
+              <td><strong>splunk-spotlight.exe</strong> </td>
+              <td>—</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.4%</td>
+            </tr>
+            <tr>
+              <td class="mono">5608</td>
+              <td><strong>rsDNSSvc.exe</strong> </td>
+              <td>—</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.39%</td>
+            </tr>
+            <tr>
+              <td class="mono">13008</td>
+              <td><strong>rsAppUI.exe</strong> </td>
+              <td>FERNAGOD\ferna</td>
+              <td><span class="status-running">running</span></td>
+              <td>0%</td>
+              <td>0.38%</td>
+            </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- NETWORK CONNECTIONS -->
+  <div class="section">
+    <div class="section-head">
+      <span class="icon">🌐</span>
+      <h2>Network Connections</h2>
+      <span class="pill">207 sockets · 100 established</span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>PID</th><th>Local Address</th><th>Remote Address</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td class="mono">5544</td>
+              <td class="mono">127.0.0.1:1544</td>
+              <td class="mono">127.0.0.1:13030 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1936</td>
+              <td class="mono">:::1538</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">10820</td>
+              <td class="mono">127.0.0.1:1612</td>
+              <td class="mono">127.0.0.1:53700 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1504</td>
+              <td class="mono">127.0.0.1:8194</td>
+              <td class="mono">127.0.0.1:1643 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6588</td>
+              <td class="mono">127.0.0.1:9997</td>
+              <td class="mono">127.0.0.1:13179 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6588</td>
+              <td class="mono">127.0.0.1:47804</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">14052</td>
+              <td class="mono">0.0.0.0:5353</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">18908</td>
+              <td class="mono">192.168.1.254:33486</td>
+              <td class="mono">32.193.34.105:443 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:1633 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5040</td>
+              <td class="mono">127.0.0.1:1661</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">11580</td>
+              <td class="mono">127.0.0.1:1680</td>
+              <td class="mono">127.0.0.1:1689 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6784</td>
+              <td class="mono">127.0.0.1:48302</td>
+              <td class="mono">127.0.0.1:1042 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">12084</td>
+              <td class="mono">127.0.0.1:1700</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4720</td>
+              <td class="mono">127.0.0.1:1900</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1936</td>
+              <td class="mono">:::4500</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">12084</td>
+              <td class="mono">127.0.0.1:53707</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5040</td>
+              <td class="mono">127.0.0.1:1662</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">0.0.0.0:8191</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6588</td>
+              <td class="mono">127.0.0.1:1633</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">10820</td>
+              <td class="mono">127.0.0.1:1682</td>
+              <td class="mono">127.0.0.1:1652 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">2028</td>
+              <td class="mono">:::1539</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8352</td>
+              <td class="mono">127.0.0.1:13169</td>
+              <td class="mono">127.0.0.1:8089 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1936</td>
+              <td class="mono">192.168.1.254:7125</td>
+              <td class="mono">104.208.203.90:443 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4</td>
+              <td class="mono">192.168.1.254:137</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1688</td>
+              <td class="mono">0.0.0.0:135</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">10820</td>
+              <td class="mono">127.0.0.1:1684</td>
+              <td class="mono">127.0.0.1:1662 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4720</td>
+              <td class="mono">0.0.0.0:3702</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">18908</td>
+              <td class="mono">127.0.0.1:47785</td>
+              <td class="mono">127.0.0.1:1337 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">16956</td>
+              <td class="mono">127.0.0.1:13331</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1504</td>
+              <td class="mono">127.0.0.1:1637</td>
+              <td class="mono">127.0.0.1:1663 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">14052</td>
+              <td class="mono">192.168.1.254:59584</td>
+              <td class="mono">157.240.24.10:443 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4</td>
+              <td class="mono">0.0.0.0:54235</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">2028</td>
+              <td class="mono">0.0.0.0:1539</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:1619</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5380</td>
+              <td class="mono">192.168.1.254:5353</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6096</td>
+              <td class="mono">127.0.0.1:1042</td>
+              <td class="mono">127.0.0.1:48298 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6588</td>
+              <td class="mono">0.0.0.0:9997</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4720</td>
+              <td class="mono">127.0.0.1:64595</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">11580</td>
+              <td class="mono">127.0.0.1:1678</td>
+              <td class="mono">127.0.0.1:53705 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">14052</td>
+              <td class="mono">0.0.0.0:62643</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">10820</td>
+              <td class="mono">127.0.0.1:1643</td>
+              <td class="mono">127.0.0.1:8194 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8552</td>
+              <td class="mono">127.0.0.1:10012</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">2964</td>
+              <td class="mono">127.0.0.1:54205</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8352</td>
+              <td class="mono">127.0.0.1:1651</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6588</td>
+              <td class="mono">0.0.0.0:8089</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">12084</td>
+              <td class="mono">127.0.0.1:1701</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">10820</td>
+              <td class="mono">127.0.0.1:1612</td>
+              <td class="mono">127.0.0.1:53701 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:1619 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">23232</td>
+              <td class="mono">127.0.0.1:6463</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4720</td>
+              <td class="mono">::1:1900</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:1617</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1936</td>
+              <td class="mono">0.0.0.0:4500</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:1618</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">10820</td>
+              <td class="mono">127.0.0.1:1612</td>
+              <td class="mono">127.0.0.1:53702 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">10820</td>
+              <td class="mono">127.0.0.1:1641</td>
+              <td class="mono">127.0.0.1:8194 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4</td>
+              <td class="mono">:::445</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">18288</td>
+              <td class="mono">127.0.0.1:1337</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6588</td>
+              <td class="mono">127.0.0.1:8089</td>
+              <td class="mono">127.0.0.1:13169 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1936</td>
+              <td class="mono">0.0.0.0:1538</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">12084</td>
+              <td class="mono">127.0.0.1:36023</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">18908</td>
+              <td class="mono">127.0.0.1:47778</td>
+              <td class="mono">127.0.0.1:1337 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:53695 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">14464</td>
+              <td class="mono">127.0.0.1:53682</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">12084</td>
+              <td class="mono">127.0.0.1:1703</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">14052</td>
+              <td class="mono">0.0.0.0:55174</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1352</td>
+              <td class="mono">0.0.0.0:1543</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5380</td>
+              <td class="mono">127.0.0.1:5354</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">2032</td>
+              <td class="mono">0.0.0.0:5040</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">9064</td>
+              <td class="mono">0.0.0.0:5353</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6588</td>
+              <td class="mono">127.0.0.1:1630</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5544</td>
+              <td class="mono">127.0.0.1:13030</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">3444</td>
+              <td class="mono">192.168.1.254:13164</td>
+              <td class="mono">51.132.193.104:443 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">12084</td>
+              <td class="mono">127.0.0.1:53695</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">9192</td>
+              <td class="mono">0.0.0.0:9012</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4720</td>
+              <td class="mono">192.168.1.254:64594</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5544</td>
+              <td class="mono">127.0.0.1:22112</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5016</td>
+              <td class="mono">0.0.0.0:1540</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">18288</td>
+              <td class="mono">127.0.0.1:13337</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5636</td>
+              <td class="mono">127.0.0.1:8065</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">11580</td>
+              <td class="mono">127.0.0.1:53704</td>
+              <td class="mono">127.0.0.1:1612 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5592</td>
+              <td class="mono">:::1545</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">14052</td>
+              <td class="mono">192.168.1.254:24308</td>
+              <td class="mono">18.97.36.61:443 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4</td>
+              <td class="mono">192.168.56.1:137</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4720</td>
+              <td class="mono">192.168.56.1:64593</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5380</td>
+              <td class="mono">127.0.0.1:5354</td>
+              <td class="mono">127.0.0.1:1541 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:1617 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8352</td>
+              <td class="mono">127.0.0.1:1652</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:1701 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4</td>
+              <td class="mono">192.168.56.1:139</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1688</td>
+              <td class="mono">:::135</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">9192</td>
+              <td class="mono">:::9013</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1400</td>
+              <td class="mono">0.0.0.0:1536</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1504</td>
+              <td class="mono">127.0.0.1:8194</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">14052</td>
+              <td class="mono">192.168.1.254:62680</td>
+              <td class="mono">18.97.36.2:443 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:36023 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">14052</td>
+              <td class="mono">0.0.0.0:60675</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:47804 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5592</td>
+              <td class="mono">0.0.0.0:1545</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4</td>
+              <td class="mono">:::5357</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:1705 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4720</td>
+              <td class="mono">0.0.0.0:49672</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4</td>
+              <td class="mono">192.168.1.254:139</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5380</td>
+              <td class="mono">0.0.0.0:49668</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5440</td>
+              <td class="mono">127.0.0.1:49670</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">13276</td>
+              <td class="mono">127.0.0.1:10011</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8352</td>
+              <td class="mono">127.0.0.1:27067</td>
+              <td class="mono">127.0.0.1:8089 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">10820</td>
+              <td class="mono">127.0.0.1:1663</td>
+              <td class="mono">127.0.0.1:1637 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:53697 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">14052</td>
+              <td class="mono">0.0.0.0:56802</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">11580</td>
+              <td class="mono">127.0.0.1:1680</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1864</td>
+              <td class="mono">127.0.0.1:65444</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">18288</td>
+              <td class="mono">127.0.0.1:1337</td>
+              <td class="mono">127.0.0.1:47785 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">2460</td>
+              <td class="mono">0.0.0.0:5353</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6588</td>
+              <td class="mono">127.0.0.1:53697</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">18288</td>
+              <td class="mono">127.0.0.1:1337</td>
+              <td class="mono">127.0.0.1:47778 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8352</td>
+              <td class="mono">127.0.0.1:1652</td>
+              <td class="mono">127.0.0.1:1682 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:53696 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">16032</td>
+              <td class="mono">192.168.1.254:13170</td>
+              <td class="mono">48.211.72.139:443 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5440</td>
+              <td class="mono">127.0.0.1:27015</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">14052</td>
+              <td class="mono">192.168.1.254:51356</td>
+              <td class="mono">157.240.24.63:443 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5040</td>
+              <td class="mono">127.0.0.1:1662</td>
+              <td class="mono">127.0.0.1:1684 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">10820</td>
+              <td class="mono">127.0.0.1:1612</td>
+              <td class="mono">127.0.0.1:53703 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">2460</td>
+              <td class="mono">0.0.0.0:5355</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5380</td>
+              <td class="mono">192.168.56.1:5353</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">10820</td>
+              <td class="mono">127.0.0.1:1689</td>
+              <td class="mono">127.0.0.1:1680 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">14052</td>
+              <td class="mono">192.168.1.254:19299</td>
+              <td class="mono">157.240.24.10:443 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">14052</td>
+              <td class="mono">192.168.1.254:37965</td>
+              <td class="mono">157.240.24.63:443 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">9192</td>
+              <td class="mono">127.0.0.1:48298</td>
+              <td class="mono">127.0.0.1:1042 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6588</td>
+              <td class="mono">0.0.0.0:8000</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4</td>
+              <td class="mono">:::54235</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5584</td>
+              <td class="mono">::1:22350</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1936</td>
+              <td class="mono">127.0.0.1:49667</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6096</td>
+              <td class="mono">0.0.0.0:1043</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5016</td>
+              <td class="mono">:::1540</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4</td>
+              <td class="mono">127.0.0.1:27339</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4720</td>
+              <td class="mono">:::49673</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">0</td>
+              <td class="mono">127.0.0.1:13165</td>
+              <td class="mono">127.0.0.1:9997 </td>
+              <td><span class="status-time_wait">TIME_WAIT</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1936</td>
+              <td class="mono">:::500</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">11580</td>
+              <td class="mono">127.0.0.1:53705</td>
+              <td class="mono">127.0.0.1:1678 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4720</td>
+              <td class="mono">:::3702</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">18908</td>
+              <td class="mono">127.0.0.1:47872</td>
+              <td class="mono">127.0.0.1:1545 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:1630 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6588</td>
+              <td class="mono">127.0.0.1:8089</td>
+              <td class="mono">127.0.0.1:20263 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">11580</td>
+              <td class="mono">127.0.0.1:1678</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">11580</td>
+              <td class="mono">127.0.0.1:53706</td>
+              <td class="mono">127.0.0.1:1612 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5820</td>
+              <td class="mono">127.0.0.1:13179</td>
+              <td class="mono">127.0.0.1:9997 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8352</td>
+              <td class="mono">127.0.0.1:20263</td>
+              <td class="mono">127.0.0.1:8089 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">10820</td>
+              <td class="mono">127.0.0.1:1612</td>
+              <td class="mono">127.0.0.1:53706 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5592</td>
+              <td class="mono">127.0.0.1:1545</td>
+              <td class="mono">127.0.0.1:47872 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">11580</td>
+              <td class="mono">127.0.0.1:53700</td>
+              <td class="mono">127.0.0.1:1612 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">10820</td>
+              <td class="mono">127.0.0.1:1613</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5440</td>
+              <td class="mono">127.0.0.1:1541</td>
+              <td class="mono">127.0.0.1:5354 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6096</td>
+              <td class="mono">0.0.0.0:1042</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1936</td>
+              <td class="mono">0.0.0.0:500</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4</td>
+              <td class="mono">192.168.1.254:138</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5440</td>
+              <td class="mono">127.0.0.1:49671</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5380</td>
+              <td class="mono">:::49669</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4720</td>
+              <td class="mono">192.168.56.1:1900</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5440</td>
+              <td class="mono">127.0.0.1:1542</td>
+              <td class="mono">127.0.0.1:5354 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5584</td>
+              <td class="mono">::1:22350</td>
+              <td class="mono">::1:57133 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6588</td>
+              <td class="mono">127.0.0.1:8089</td>
+              <td class="mono">127.0.0.1:27067 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4156</td>
+              <td class="mono">127.0.0.1:13344</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4</td>
+              <td class="mono">0.0.0.0:445</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">11580</td>
+              <td class="mono">127.0.0.1:53702</td>
+              <td class="mono">127.0.0.1:1612 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6096</td>
+              <td class="mono">:::1043</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">11208</td>
+              <td class="mono">::1:42050</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5544</td>
+              <td class="mono">127.0.0.1:13030</td>
+              <td class="mono">127.0.0.1:1544 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">10820</td>
+              <td class="mono">127.0.0.1:1612</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4720</td>
+              <td class="mono">::1:64592</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:1620</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">10312</td>
+              <td class="mono">192.168.1.254:34712</td>
+              <td class="mono">35.186.224.39:443 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">2964</td>
+              <td class="mono">127.0.0.1:10010</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">10820</td>
+              <td class="mono">127.0.0.1:1612</td>
+              <td class="mono">127.0.0.1:53704 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:29185 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:1620 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6096</td>
+              <td class="mono">:::1042</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6588</td>
+              <td class="mono">127.0.0.1:29185</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">11580</td>
+              <td class="mono">127.0.0.1:53701</td>
+              <td class="mono">127.0.0.1:1612 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">9192</td>
+              <td class="mono">:::9012</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5448</td>
+              <td class="mono">127.0.0.1:22352</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:1700 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:53707 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:1703 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5380</td>
+              <td class="mono">::1:5353</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">14052</td>
+              <td class="mono">0.0.0.0:56764</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">12084</td>
+              <td class="mono">127.0.0.1:1705</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5380</td>
+              <td class="mono">127.0.0.1:5354</td>
+              <td class="mono">127.0.0.1:1542 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1400</td>
+              <td class="mono">:::1536</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1268</td>
+              <td class="mono">0.0.0.0:1537</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4</td>
+              <td class="mono">0.0.0.0:5357</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">14052</td>
+              <td class="mono">192.168.1.254:20207</td>
+              <td class="mono">23.221.24.229:443 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1352</td>
+              <td class="mono">:::1543</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">8508</td>
+              <td class="mono">127.0.0.1:8191</td>
+              <td class="mono">127.0.0.1:1618 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">10312</td>
+              <td class="mono">192.168.1.254:29666</td>
+              <td class="mono">162.159.136.234:443 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1268</td>
+              <td class="mono">:::1537</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6096</td>
+              <td class="mono">127.0.0.1:1042</td>
+              <td class="mono">127.0.0.1:48302 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">11580</td>
+              <td class="mono">127.0.0.1:53703</td>
+              <td class="mono">127.0.0.1:1612 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1504</td>
+              <td class="mono">127.0.0.1:8194</td>
+              <td class="mono">127.0.0.1:1641 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">3444</td>
+              <td class="mono">192.168.1.254:27066</td>
+              <td class="mono">13.107.246.57:443 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">2032</td>
+              <td class="mono">0.0.0.0:5050</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">6588</td>
+              <td class="mono">127.0.0.1:53696</td>
+              <td class="mono">127.0.0.1:8191 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+            <tr>
+              <td class="mono">9192</td>
+              <td class="mono">0.0.0.0:9013</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">1504</td>
+              <td class="mono">127.0.0.1:1637</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4720</td>
+              <td class="mono">192.168.1.254:1900</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">4</td>
+              <td class="mono">192.168.56.1:138</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-none">NONE</span></td>
+            </tr>
+            <tr>
+              <td class="mono">5584</td>
+              <td class="mono">127.0.0.1:22350</td>
+              <td class="mono">N/A </td>
+              <td><span class="status-listen">LISTEN</span></td>
+            </tr>
+            <tr>
+              <td class="mono">21860</td>
+              <td class="mono">::1:57133</td>
+              <td class="mono">::1:22350 <span class="badge warn">ACTIVE</span></td>
+              <td><span class="status-established">ESTABLISHED</span></td>
+            </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- USER ACCOUNTS -->
+  <div class="section">
+    <div class="section-head">
+      <span class="icon">👤</span>
+      <h2>User Accounts</h2>
+    </div>
+    <div class="raw-output">
+User accounts for \\FERNAGOD
+
+-------------------------------------------------------------------------------
+Administrator            DefaultAccount           ferna                    
+Guest                    WDAGUtilityAccount       WsiAccount               
+The command completed successfully.
+
+</div>
+  </div>
+
+  <!-- STARTUP PROGRAMS -->
+  <div class="section">
+    <div class="section-head">
+      <span class="icon">🔑</span>
+      <h2>Startup Programs</h2>
+      <span class="pill">HKLM Run key</span>
+    </div>
+    <div class="raw-output">
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+    SecurityHealth    REG_EXPAND_SZ    %windir%\system32\SecurityHealthSystray.exe
+    RtkAudUService    REG_SZ    "C:\WINDOWS\System32\DriverStore\FileRepository\realtekservice.inf_amd64_74518f403e753586\RtkAudUService64.exe" -background
+    SteelSeriesGG    REG_SZ    "C:\Program Files\SteelSeries\GG\SteelSeriesGG.exe" -dataPath="C:\ProgramData\SteelSeries\GG" -dbEnv=production -auto=true
+    Corsair iCUE5 Software    REG_SZ    "C:\Program Files\Corsair\Corsair iCUE5 Software\iCUE Launcher.exe" --autorun
+    RazerCortex    REG_SZ    "C:\Program Files (x86)\Razer\Razer Cortex\RazerCortex.exe" -autorun
+    Riot Vanguard    REG_SZ    "C:\Program Files\Riot Vanguard\vgtray.exe"
+
+</div>
+  </div>
+
+  <!-- RECENTLY MODIFIED FILES -->
+  <div class="section">
+    <div class="section-head">
+      <span class="icon">📁</span>
+      <h2>Recently Modified Files</h2>
+      <span class="pill">Last 24 hours · top 35</span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>File Path</th><th>Last Modified</th></tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td class="mono small">C:\Users\ferna\NTUSER.DAT{c2e0204e-cebf-11ef-8a4d-e55fc5bcdd1a}.TxR.0.regtrans-ms</td>
+              <td>2026-03-26 04:58:54</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\NTUSER.DAT{c2e0204e-cebf-11ef-8a4d-e55fc5bcdd1a}.TxR.blf</td>
+              <td>2026-03-26 04:58:54</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Downloads\ir-toolkit\__pycache__\collector.cpython-313.pyc</td>
+              <td>2026-03-26 04:58:52</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Downloads\ir-toolkit\__pycache__\report.cpython-313.pyc</td>
+              <td>2026-03-26 04:58:52</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Downloads\ir-toolkit\report.py</td>
+              <td>2026-03-26 04:58:45</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Downloads\ir-toolkit\main.py</td>
+              <td>2026-03-26 04:58:35</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Downloads\ir-toolkit\collector.py</td>
+              <td>2026-03-26 04:50:41</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\OneDrive\Pictures\screenshots\Screenshot 2026-03-26 045005.png</td>
+              <td>2026-03-26 04:50:05</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\OneDrive\Pictures\screenshots\Screenshot 2026-03-26 043831.png</td>
+              <td>2026-03-26 04:38:31</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Desktop\threat-intel-dashboard\README.md</td>
+              <td>2026-03-26 04:35:13</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Desktop\threat-intel-dashboard\screenshots\terminal.png</td>
+              <td>2026-03-26 04:33:14</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\OneDrive\Pictures\screenshots\terminal_output.png</td>
+              <td>2026-03-26 04:33:14</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Desktop\threat-intel-dashboard\screenshots\setup.png</td>
+              <td>2026-03-26 04:30:48</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\OneDrive\Pictures\screenshots\setup.png</td>
+              <td>2026-03-26 04:30:48</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\OneDrive\Pictures\screenshots\Screenshot 2026-03-26 042958.png</td>
+              <td>2026-03-26 04:29:58</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Desktop\threat-intel-dashboard\.gitignore</td>
+              <td>2026-03-26 04:29:54</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Desktop\threat-intel-dashboard\screenshots\malicious_ip.png</td>
+              <td>2026-03-26 04:26:03</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\OneDrive\Pictures\screenshots\malicious_ip.png</td>
+              <td>2026-03-26 04:26:03</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Desktop\threat-intel-dashboard\.env</td>
+              <td>2026-03-26 04:25:11</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\OneDrive\Pictures\screenshots\Screenshot 2026-03-26 042316.png</td>
+              <td>2026-03-26 04:23:16</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Desktop\threat-intel-dashboard\screenshots\clean_ip.png</td>
+              <td>2026-03-26 04:22:38</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\OneDrive\Pictures\screenshots\clean_ip.png</td>
+              <td>2026-03-26 04:22:38</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\OneDrive\Pictures\screenshots\Screenshot 2026-03-26 042219.png</td>
+              <td>2026-03-26 04:22:20</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Desktop\threat-intel-dashboard\screenshots\dashboard.png</td>
+              <td>2026-03-26 04:21:45</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\OneDrive\Pictures\screenshots\dashboard.png</td>
+              <td>2026-03-26 04:21:45</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Desktop\threat-intel-dashboard\templates\index.html</td>
+              <td>2026-03-26 04:19:43</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Desktop\threat-intel-dashboard\app.py</td>
+              <td>2026-03-26 04:18:55</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\OneDrive\Videos\interracial entertainment, Mia Malkova.mp4</td>
+              <td>2026-03-26 03:45:50</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\.gitconfig</td>
+              <td>2026-03-26 03:32:59</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Downloads\Git-2.53.0.2-64-bit.exe</td>
+              <td>2026-03-26 03:26:56</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Desktop\ITDF\FernandoCortez_IntroToDigForensics3_HTB.pdf</td>
+              <td>2026-03-25 19:59:59</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Desktop\ITDF\FernandoCortez_IntroToDigForensics2_HTB.pdf</td>
+              <td>2026-03-25 19:56:03</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Desktop\ITDF\FernandoCortez_IntroToDigForensics1_HTB.pdf</td>
+              <td>2026-03-25 19:47:05</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\NTUSER.DAT</td>
+              <td>2026-03-25 16:44:22</td>
+            </tr>
+            <tr>
+              <td class="mono small">C:\Users\ferna\Documents\Medal\MedalLog20260325.txt</td>
+              <td>2026-03-25 07:49:47</td>
+            </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  IR TOOLKIT &nbsp;·&nbsp; Report generated 2026-03-26 04:58:52 &nbsp;·&nbsp;
+  Host: Fernagod &nbsp;·&nbsp; Windows AMD64
+</footer>
+
+</body>
+</html>
